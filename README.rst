@@ -43,7 +43,7 @@ Once installed, you need to enable it in your `collectd.conf` file this way::
 
   <Plugin python>
     Import "collectd_gnocchi"
-    <Module collectd_gnocchi">
+    <Module collectd_gnocchi>
        ## Without Keystone authentication
        # Endpoint "http://localhost:8041"
        # UserId admin
