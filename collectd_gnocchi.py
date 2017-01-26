@@ -31,7 +31,7 @@ class Gnocchi(object):
 
     def config(self, config):
         conf = dict((c.key.lower(), c.values[0]) for c in config.children)
-        auth_mode = conf.get('auth_mode', 'basic')
+        auth_mode = conf.get('auth_mode', 'basic').lower()
         if auth_mode == 'keystone':
             authurl = conf.get("authurl")
             if authurl is None:
