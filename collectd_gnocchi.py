@@ -19,9 +19,9 @@ import operator
 import time
 
 import collectd
+import gnocchiclient.auth
 from gnocchiclient import client
 from gnocchiclient import exceptions
-from gnocchiclient import noauth
 from gnocchiclient import utils
 from keystoneauth1 import identity
 from keystoneauth1 import session
@@ -31,19 +31,30 @@ class Gnocchi(object):
 
     def config(self, config):
         conf = dict((c.key.lower(), c.values[0]) for c in config.children)
-        if conf.get("authurl"):
-            auth = identity.Password(conf.get("authurl"),
+        auth_mode = conf.get('auth_mode', 'basic')
+        if auth_mode == 'keystone':
+            authurl = conf.get("authurl")
+            if authurl is None:
+                raise RuntimeError(
+                    "Please specify `authurl` for Keystone auth_mode")
+            auth = identity.Password(authurl,
                                      conf.get("userid"),
                                      conf.get("projectid"),
                                      conf.get("password"),
                                      conf.get("userdomainname"),
                                      conf.get("projectdomainname"))
-        else:
-            auth = noauth.GnocchiNoAuthPlugin(
+        elif auth_mode == "basic":
+            auth = gnocchiclient.auth.GnocchiBasicPlugin(
+                conf.get("user", "admin"),
+                conf.get("endpoint"))
+        elif auth_mode == "noauth":
+            auth = gnocchiclient.auth.GnocchiNoAuthPlugin(
                 conf.get("userid", "admin"),
                 conf.get("projectid", "admin"),
                 conf.get("roles", "admin"),
                 conf.get("endpoint"))
+        else:
+            raise RuntimeError("Unknown auth_mode `%s'" % auth_mode)
         s = session.Session(auth=auth)
         self.g = client.Client(
             1, s,
