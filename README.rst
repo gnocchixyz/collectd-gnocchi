@@ -46,11 +46,10 @@ Once installed, you need to enable it in your `collectd.conf` file this way::
     <Module collectd_gnocchi>
        ## Without Keystone authentication
        # Endpoint "http://localhost:8041"
-       # UserId admin
-       # ProjectId admin
-       # Roles admin
+       # User admin
 
        ## With Keystone authentication
+       # Auth_Mode keystone
        # AuthUrl http://keystoneurl
        # UserId admin
        # ProjectId admin
