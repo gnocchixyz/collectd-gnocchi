@@ -91,12 +91,12 @@ class Gnocchi(object):
         """Based of FORMAT_VL from collectd/src/daemon/common.h.
 
         The biggest difference is that we don't prepend the host and append the
-        index of the value.
+        index of the value, and don't use slash.
 
         """
         return (v.plugin + ("-" + v.plugin_instance
                             if v.plugin_instance else "")
-                + "/"
+                + "@"
                 + v.type + ("-" + v.type_instance
                             if v.type_instance else "")
                 + "-" + str(index))
@@ -128,7 +128,7 @@ class Gnocchi(object):
             except exceptions.BadRequest:
                 # Create the resource and try again
                 self.g.resource.create(self._resource_type, {
-                    "id": utils.encode_resource_id(host),
+                    "id": "collectd:" + host.replace("/", "_"),
                     "host": host,
                 })
                 self.g.metric.batch_resources_metrics_measures(
