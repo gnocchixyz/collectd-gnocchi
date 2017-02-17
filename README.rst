@@ -41,33 +41,10 @@ Configuration
 =============
 Once installed, you need to enable it in your `collectd.conf` file this way::
 
-  <Plugin python>
-    Import "collectd_gnocchi"
-    <Module collectd_gnocchi>
-       ## Without Keystone authentication
-       # Endpoint "http://localhost:8041"
-       # User admin
+.. include:: collectd-gnocchi.conf
 
-       ## With Keystone authentication
-       # Auth_Mode keystone
-       # AuthUrl http://keystoneurl
-       # UserId admin
-       # ProjectId admin
-       # Password passw0rd
-       # UserDomainName default
-       # ProjectDomainName default
-       # RegionName regionOne
-       # Interface public
-       # Endpoint http://localhost:8041 # if you want to override Keystone value
-
-       ## Default resource type created by the plugin in Gnocchi
-       ## to store hosts
-       # ResourceType collectd
-
-       ## Minimum number of values to batch
-       # BatchSize 10
-    </Module>
-  </Plugin>
+You can also copy the provided `collectd-gnocchi.conf` from this repository in
+e.g. `/etc/collectd.d` if your distribution supports it.
 
 .. _`collectd`: http://collectd.org
 .. _`Gnocchi`: http://gnocchi.xyz
