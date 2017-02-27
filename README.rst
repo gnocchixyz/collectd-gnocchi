@@ -4,9 +4,6 @@
 .. image:: https://img.shields.io/pypi/v/collectd-gnocchi.svg
     :target: https://pypi.python.org/pypi/collectd-gnocchi
 
-.. image:: https://img.shields.io/pypi/dm/collectd-gnocchi.svg
-    :target: https://pypi.python.org/pypi/collectd-gnocchi
-
 This is an output plugin for `collectd`_ that send metrics to `Gnocchi`_. It
 will create a resource type named _collectd_ (by default) and a new resource
 for each of the host monitored.
