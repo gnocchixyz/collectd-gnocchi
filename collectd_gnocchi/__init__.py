@@ -74,7 +74,7 @@ class Gnocchi(object):
 
         try:
             self.g.resource_type.get("collectd")
-        except exceptions.ResourceNotFound:
+        except exceptions.ResourceTypeNotFound:
             self.g.resource_type.create({
                 "name": self._resource_type,
                 "attributes": {

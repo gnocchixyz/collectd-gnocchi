@@ -1,2 +1,2 @@
-gnocchiclient>=2.8
+gnocchiclient>=3.1.0
 keystoneauth1
