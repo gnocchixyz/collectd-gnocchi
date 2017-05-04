@@ -122,10 +122,11 @@ class Gnocchi(object):
 
         for host, values in itertools.groupby(
                 to_flush, operator.attrgetter("host")):
-            measures = {host: collections.defaultdict(list)}
+            host_id = "collectd:" + host.replace("/", "_")
+            measures = {host_id: collections.defaultdict(list)}
             for value_obj in values:
                 for i, value in enumerate(value_obj.values):
-                    measures[host][
+                    measures[host_id][
                         self._serialize_identifier(i, value_obj)].append({
                             "timestamp": v.time,
                             "value": value,
@@ -136,7 +137,7 @@ class Gnocchi(object):
             except exceptions.BadRequest:
                 # Create the resource and try again
                 self.g.resource.create(self._resource_type, {
-                    "id": "collectd:" + host.replace("/", "_"),
+                    "id": host_id,
                     "host": host,
                 })
                 self.g.metric.batch_resources_metrics_measures(
