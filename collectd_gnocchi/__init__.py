@@ -135,11 +135,14 @@ class Gnocchi(object):
                 self.g.metric.batch_resources_metrics_measures(
                     measures, create_metrics=True)
             except exceptions.BadRequest:
-                # Create the resource and try again
-                self.g.resource.create(self._resource_type, {
-                    "id": host_id,
-                    "host": host,
-                })
+                try:
+                    # Create the resource and try again
+                    self.g.resource.create(self._resource_type, {
+                        "id": host_id,
+                        "host": host,
+                    })
+                except exceptions.ResourceAlreadyExists:
+                    pass
                 self.g.metric.batch_resources_metrics_measures(
                     measures, create_metrics=True)
 
