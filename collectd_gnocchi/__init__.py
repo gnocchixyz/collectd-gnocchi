@@ -22,7 +22,6 @@ import collectd
 import gnocchiclient.auth
 from gnocchiclient import client
 from gnocchiclient import exceptions
-from gnocchiclient import utils
 from keystoneauth1 import identity
 from keystoneauth1 import session
 
