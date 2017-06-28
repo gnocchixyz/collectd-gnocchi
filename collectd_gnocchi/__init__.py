@@ -88,10 +88,25 @@ class Gnocchi(object):
             endpoint_override=self.conf.get('endpoint'))
 
         self._resource_type = self.conf.get("resourcetype", "collectd")
+        self.values = []
+        self.batch_size = self.conf.get("batchsize", 10)
 
+        collectd.register_write(self.write)
+        collectd.register_flush(self.flush)
+
+    def _ensure_resource_exists(self, host_id, host):
+        attrs = {"id": host_id, "host": host}
         try:
-            self.g.resource_type.get("collectd")
-        except exceptions.ResourceTypeNotFound:
+            try:
+                self.g.resource.create(self._resource_type, attrs)
+            except exceptions.ResourceTypeNotFound:
+                self._ensure_resource_type_exists()
+                self.g.resource.create(self._resource_type, attrs)
+        except exceptions.ResourceAlreadyExists:
+            pass
+
+    def _ensure_resource_type_exists(self):
+        try:
             self.g.resource_type.create({
                 "name": self._resource_type,
                 "attributes": {
@@ -101,12 +116,8 @@ class Gnocchi(object):
                     },
                 },
             })
-
-        self.values = []
-        self.batch_size = self.conf.get("batchsize", 10)
-
-        collectd.register_write(self.write)
-        collectd.register_flush(self.flush)
+        except exceptions.ResourceTypeAlreadyExists:
+            pass
 
     @log_full_exception
     def write(self, values):
@@ -157,14 +168,8 @@ class Gnocchi(object):
                 self.g.metric.batch_resources_metrics_measures(
                     measures, create_metrics=True)
             except exceptions.BadRequest:
-                try:
-                    # Create the resource and try again
-                    self.g.resource.create(self._resource_type, {
-                        "id": host_id,
-                        "host": host,
-                    })
-                except exceptions.ResourceAlreadyExists:
-                    pass
+                # Create the resource and try again
+                self._ensure_resource_exists(host_id, host)
                 self.g.metric.batch_resources_metrics_measures(
                     measures, create_metrics=True)
 
