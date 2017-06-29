@@ -9,7 +9,7 @@ before_install:
   - sudo rm -rf /opt/python
   - sudo pip install -U pip
 install:
-  - sudo pip install -U gnocchi[postgresql,file] pifpaf $TRAVIS_BUILD_DIR
+  - sudo pip install -U gnocchi[postgresql,file] pifpaf[gnocchi] $TRAVIS_BUILD_DIR
 script:
   - $TRAVIS_BUILD_DIR/run-tests.sh
 
