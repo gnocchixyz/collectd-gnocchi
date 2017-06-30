@@ -17,6 +17,8 @@ import collections
 import itertools
 import operator
 import time
+import traceback
+import sys
 
 import collectd
 import gnocchiclient.auth
@@ -26,13 +28,29 @@ from keystoneauth1 import identity
 from keystoneauth1 import session
 
 
-class Gnocchi(object):
+def log_full_exception(func):
+    def inner_func(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            etype, value, tb = sys.exc_info()
+            for l in traceback.format_exception(etype, value, tb):
+                collectd.error(l.strip())
+    return inner_func
 
+
+class Gnocchi(object):
     def config(self, config):
-        conf = dict((c.key.lower(), c.values[0]) for c in config.children)
-        auth_mode = conf.get('auth_mode', 'basic').lower()
+        # NOTE(sileht): Python threading system is not yet initialized here
+        # FIXME(sileht): We handle only one configuration block for now
+        self.conf = dict((c.key.lower(), c.values[0]) for c in
+                         config.children)
+
+    @log_full_exception
+    def init(self):
+        auth_mode = self.conf.get('auth_mode', 'basic').lower()
         if auth_mode == 'keystone':
-            authurl = conf.get("authurl")
+            authurl = self.conf.get("authurl")
             if authurl is None:
                 raise RuntimeError(
                     "Please specify `authurl` for Keystone auth_mode")
@@ -46,34 +64,49 @@ class Gnocchi(object):
                         "password",
                         "user_domain_id", "user_domain_name",
                         "project_domain_id", "project_domain_name"):
-                if arg in conf:
-                    kwargs[arg] = conf.get(arg)
+                if arg in self.conf:
+                    kwargs[arg] = self.conf.get(arg)
 
             auth = identity.Password(**kwargs)
         elif auth_mode == "basic":
             auth = gnocchiclient.auth.GnocchiBasicPlugin(
-                conf.get("user", "admin"),
-                conf.get("endpoint"))
+                self.conf.get("user", "admin"),
+                self.conf.get("endpoint"))
         elif auth_mode == "noauth":
             auth = gnocchiclient.auth.GnocchiNoAuthPlugin(
-                conf.get("userid", "admin"),
-                conf.get("projectid", "admin"),
-                conf.get("roles", "admin"),
-                conf.get("endpoint"))
+                self.conf.get("userid", "admin"),
+                self.conf.get("projectid", "admin"),
+                self.conf.get("roles", "admin"),
+                self.conf.get("endpoint"))
         else:
             raise RuntimeError("Unknown auth_mode `%s'" % auth_mode)
         s = session.Session(auth=auth)
         self.g = client.Client(
             1, s,
-            interface=conf.get('interface'),
-            region_name=conf.get('region_name'),
-            endpoint_override=conf.get('endpoint'))
+            interface=self.conf.get('interface'),
+            region_name=self.conf.get('region_name'),
+            endpoint_override=self.conf.get('endpoint'))
 
-        self._resource_type = conf.get("resourcetype", "collectd")
+        self._resource_type = self.conf.get("resourcetype", "collectd")
+        self.values = []
+        self.batch_size = self.conf.get("batchsize", 10)
 
+        collectd.register_write(self.write)
+        collectd.register_flush(self.flush)
+
+    def _ensure_resource_exists(self, host_id, host):
+        attrs = {"id": host_id, "host": host}
         try:
-            self.g.resource_type.get("collectd")
-        except exceptions.ResourceTypeNotFound:
+            try:
+                self.g.resource.create(self._resource_type, attrs)
+            except exceptions.ResourceTypeNotFound:
+                self._ensure_resource_type_exists()
+                self.g.resource.create(self._resource_type, attrs)
+        except exceptions.ResourceAlreadyExists:
+            pass
+
+    def _ensure_resource_type_exists(self):
+        try:
             self.g.resource_type.create({
                 "name": self._resource_type,
                 "attributes": {
@@ -83,10 +116,10 @@ class Gnocchi(object):
                     },
                 },
             })
+        except exceptions.ResourceTypeAlreadyExists:
+            pass
 
-        self.values = []
-        self.batch_size = conf.get("batchsize", 10)
-
+    @log_full_exception
     def write(self, values):
         self.values.append(values)
 
@@ -108,6 +141,7 @@ class Gnocchi(object):
                             if v.type_instance else "")
                 + "-" + str(index))
 
+    @log_full_exception
     def flush(self, timeout, identifier):
         flush_before = time.time() - timeout
         to_flush = []
@@ -134,14 +168,8 @@ class Gnocchi(object):
                 self.g.metric.batch_resources_metrics_measures(
                     measures, create_metrics=True)
             except exceptions.BadRequest:
-                try:
-                    # Create the resource and try again
-                    self.g.resource.create(self._resource_type, {
-                        "id": host_id,
-                        "host": host,
-                    })
-                except exceptions.ResourceAlreadyExists:
-                    pass
+                # Create the resource and try again
+                self._ensure_resource_exists(host_id, host)
                 self.g.metric.batch_resources_metrics_measures(
                     measures, create_metrics=True)
 
@@ -150,5 +178,4 @@ class Gnocchi(object):
 
 g = Gnocchi()
 collectd.register_config(g.config)
-collectd.register_write(g.write)
-collectd.register_flush(g.flush)
+collectd.register_init(g.init)
