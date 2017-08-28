@@ -20,3 +20,12 @@ notifications:
     on_failure: always
     channels:
       - "irc.freenode.org#gnocchi"
+
+deploy:
+  provider: pypi
+  user: jd
+  password:
+    secure: NIdJThMqD1cIAyC7gvrear6fo/fj7BubQh/3dI4eQxjFpewUpj0CDWE22OZzGDHcJHIkdU1X4kKQWnPj5nbQnCbfeqA2T7pKnZ3BHi898f7gEONQRPa4Ak8dBAWocdVgClcFQ9EpzEoWKxALiIX/S3HGBr1+H6FDCRAyerZtOeaYj1vfak7CTCs4dM1fu/L21EJRLiX5+rTnthyivoFj32CIxOzcCv8UWKPbwv5EisH2vocH7Tu0lvDLoK8EPdsryGQqC3Av2BFc0RfnpK8sXIvBCusi5ZeHgKlq8R4prasWEvtDvJgkNYyD7nBUZnnfVJ3exdasno1HxoIqn77dHBiQE0TqhPRWDnPcqhz8H87Xe6i8JNczcp/T131hxGTVHBBcNMwNOQsBWC+EUeebj57vEhLwpu1BdVI/0Rha8UCxUXOc3Ay1G9rMnedvUtiBhCQ5MsLh/PlWmGUXyDMYmtMIJhiUAgPEJUms+Ww90K1hpMyI3fESdW10JoSrvsIsRcAAKHWs+j3ZIRTfE2kCoDe330sT1pbnMjucKws/rsU05o7Y/3mT4AGT/FywCX5v/JqEr32jIWQaWKo0p7sm10FBL/JI9Adp0S7bfExcWrH/3P4vlBbcLmwVQ+BSVjPgDcU7BBZ7AFoKugnZnpACvNP5YZL8W823MQs7sk6rnRg=
+  on:
+    tags: true
+  distributions: "sdist bdist_wheel"
