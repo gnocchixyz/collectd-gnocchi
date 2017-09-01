@@ -83,9 +83,11 @@ class Gnocchi(object):
         s = session.Session(auth=auth)
         self.g = client.Client(
             1, s,
-            interface=self.conf.get('interface'),
-            region_name=self.conf.get('region_name'),
-            endpoint_override=self.conf.get('endpoint'))
+            adapter_options=dict(
+                interface=self.conf.get('interface'),
+                region_name=self.conf.get('region_name'),
+                endpoint_override=self.conf.get('endpoint')
+            ))
 
         self._resource_type = self.conf.get("resourcetype", "collectd")
         self.values = []
