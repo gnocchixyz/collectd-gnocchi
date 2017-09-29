@@ -50,7 +50,7 @@ class Gnocchi(object):
     def init(self):
         auth_mode = self.conf.get('auth_mode', 'basic').lower()
         if auth_mode == 'keystone':
-            auth_url = self.conf.get("auth_url")
+            auth_url = self.conf.get("auth_url", self.conf.get("authurl"))
             if auth_url is None:
                 raise RuntimeError(
                     "Please specify `auth_url` for Keystone auth_mode")
