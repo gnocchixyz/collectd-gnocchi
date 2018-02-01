@@ -76,6 +76,8 @@ def log_full_exception(func):
     def inner_func(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except exceptions.ConnectionFailure as e:
+            collectd.warning(str(e))
         except Exception:
             etype, value, tb = sys.exc_info()
             for l in traceback.format_exception(etype, value, tb):
