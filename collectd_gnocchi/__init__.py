@@ -16,9 +16,9 @@
 import collections
 import itertools
 import operator
+import sys
 import time
 import traceback
-import sys
 
 import collectd
 import gnocchiclient.auth

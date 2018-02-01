@@ -1,17 +1,17 @@
 dist: trusty
 sudo: required
-
-before_install:
+install:
   - sudo service postgresql stop
   - sudo apt-get install python-pip postgresql collectd
   # Remove Travis own Python version otherwise it gets loaded by collectd
   # Python plugin, and it fails because the ABI is different.
   - sudo rm -rf /opt/python
-  - sudo pip install -U pip
-install:
-  - sudo pip install -U gnocchi[postgresql,file] pifpaf[gnocchi] $TRAVIS_BUILD_DIR
+  - sudo pip install -U pip tox
 script:
-  - $TRAVIS_BUILD_DIR/run-tests.sh
+      - tox
+env:
+      - TOXENV=py27
+      - TOXENV=pep8
 
 notifications:
   email: false

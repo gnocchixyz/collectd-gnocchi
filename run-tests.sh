@@ -13,6 +13,7 @@ PATH=/opt/collectd/sbin:/opt/collectd/bin:/usr/local/sbin:/usr/sbin:$PATH
 eval `pifpaf --debug run gnocchi`
 cd $PIFPAF_DATA
 cat >> collectd.conf <<EOF
+Hostname "host-test"
 Interval     1
 LoadPlugin cpu
 LoadPlugin interface
@@ -44,11 +45,11 @@ gnocchi resource-type list -f value | grep collectd # Check
 gnocchi resource list
 gnocchi resource list -f value | grep collectd:
 
-gnocchi resource show collectd:$HOSTNAME
-gnocchi resource show collectd:$HOSTNAME -f value | grep load@load-1min
+gnocchi resource show collectd:host-test
+gnocchi resource show collectd:host-test -f value | grep load@load-1min
 
-gnocchi measures show load@load-1min -r collectd:$HOSTNAME
-MEASURES_NB=$(gnocchi measures show load@load-1min -r collectd:$HOSTNAME | wc -l)
+gnocchi measures show load@load-1min -r collectd:host-test
+MEASURES_NB=$(gnocchi measures show load@load-1min -r collectd:host-test | wc -l)
 test $MEASURES_NB -ge 1
 
 echo I: Tests passed
