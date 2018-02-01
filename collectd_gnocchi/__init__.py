@@ -27,6 +27,50 @@ from gnocchiclient import exceptions
 from keystoneauth1 import identity
 from keystoneauth1 import session
 
+# NOTE(sileht): collectd plugin values index always have a meaning for a type
+# but this meaning is not exposed into the API, just a number is throw
+# This mapping aims to write the meaning in Gnocchi instead of a number
+
+TYPE_VALUES_NAMES_MAPPING = {
+    # https://github.com/collectd/collectd/blob/master/src/load.c#L91
+    # https://github.com/collectd/collectd/blob/master/src/load.c#L113
+    "load": ["1min", "5min", "15min"],
+
+    # https://github.com/collectd/collectd/blob/master/src/disk.c#L275
+    # https://github.com/collectd/collectd/blob/master/src/disk.c#L524
+    # https://github.com/collectd/collectd/blob/master/src/virt.c#L758
+    # https://github.com/collectd/collectd/blob/master/src/processes.c#L871
+    "disk_octets": ["read", "write"],
+    "disk_ops": ["read", "write"],
+    "disk_time": ["read", "write"],
+    "disk_merged": ["read", "write"],
+    # https://github.com/collectd/collectd/blob/master/src/disk.c#L292
+    "disk_io_time": ["io_time", "weighted_time"],
+
+    # https://github.com/collectd/collectd/blob/master/src/interface.c#L216
+    # https://github.com/collectd/collectd/blob/master/src/interface.c#L266
+    # https://github.com/collectd/collectd/blob/master/src/netlink.c#L244
+    # https://github.com/collectd/collectd/blob/master/src/virt.c#L1563
+    # https://github.com/collectd/collectd/blob/master/src/network.c#L3053
+    "if_packets": ["rx", "tx"],
+    "if_octets": ["rx", "tx"],
+    "if_errors": ["rx", "tx"],
+    "if_dropped": ["rx", "tx"],
+
+    # https://github.com/collectd/collectd/blob/master/src/smart.c#L97
+    "smart_attribute": ["current", "worst", "threshold", "pretty"],
+
+    # https://github.com/collectd/collectd/blob/master/src/virt.c#L682
+    # https://github.com/collectd/collectd/blob/master/src/processes.c#L836
+    "ps_cputime": ["user", "system"],
+
+    # https://github.com/collectd/collectd/blob/master/src/processes.c#L836
+    "ps_count": ["proc", "lwp"],
+    "ps_pagefaults": ["min", "max"],
+    "io_octets": ["read", "write"],
+    "io_ops": ["read", "write"],
+}
+
 
 def log_full_exception(func):
     def inner_func(*args, **kwargs):
@@ -136,12 +180,35 @@ class Gnocchi(object):
         index of the value, and don't use slash.
 
         """
+
+        # NOTE(sileht): the len of v.values is static in Collectd, so for
+        # a particular type, this will always have the same len.
+        n_values = len(v.values)
+        if n_values <= 1:
+            suffix = None
+        else:
+            mapping = TYPE_VALUES_NAMES_MAPPING.get(v.type)
+            if mapping is None:
+                collectd.error("TYPE_VALUES_NAMES_MAPPING for (%s, %s) "
+                               "does not have names, fallback to indexes. "
+                               "Please report a bug to collectd-gnocchi" %
+                               (v.plugin, v.type))
+                suffix = str(index)
+            elif len(mapping) != n_values:
+                collectd.error("Expecting %d values instead of %s for %s in "
+                               "TYPE_VALUES_NAMES_MAPPING, "
+                               "fallback to indexes." %
+                               (len(mapping), n_values, v.type))
+                suffix = str(index)
+            else:
+                suffix = mapping[index]
+
         return (v.plugin + ("-" + v.plugin_instance
                             if v.plugin_instance else "")
                 + "@"
                 + v.type + ("-" + v.type_instance
                             if v.type_instance else "")
-                + "-" + str(index))
+                + ("-" + suffix if suffix else ""))
 
     @log_full_exception
     def flush(self, timeout, identifier):

@@ -45,10 +45,10 @@ gnocchi resource list
 gnocchi resource list -f value | grep collectd:
 
 gnocchi resource show collectd:$HOSTNAME
-gnocchi resource show collectd:$HOSTNAME -f value | grep load@load-0
+gnocchi resource show collectd:$HOSTNAME -f value | grep load@load-1min
 
-gnocchi measures show load@load-0 -r collectd:$HOSTNAME
-MEASURES_NB=$(gnocchi measures show load@load-0 -r collectd:$HOSTNAME | wc -l)
+gnocchi measures show load@load-1min -r collectd:$HOSTNAME
+MEASURES_NB=$(gnocchi measures show load@load-1min -r collectd:$HOSTNAME | wc -l)
 test $MEASURES_NB -ge 1
 
 echo I: Tests passed
