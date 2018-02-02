@@ -223,25 +223,28 @@ class Gnocchi(object):
 
         for host, values in itertools.groupby(
                 to_flush, operator.attrgetter("host")):
-            host_id = "collectd:" + host.replace("/", "_")
-            measures = {host_id: collections.defaultdict(list)}
-            for value_obj in values:
-                ident, suffixes = self._serialize_identifier(value_obj)
-                for i, value in enumerate(value_obj.values):
-                    measures[host_id][ident + suffixes[i]].append({
-                        "timestamp": v.time,
-                        "value": value,
-                    })
-            try:
-                self.g.metric.batch_resources_metrics_measures(
-                    measures, create_metrics=True)
-            except exceptions.BadRequest:
-                # Create the resource and try again
-                self._ensure_resource_exists(host_id, host)
-                self.g.metric.batch_resources_metrics_measures(
-                    measures, create_metrics=True)
+            self._batch(host, values)
 
         self.values = not_to_flush
+
+    def _batch(self, host, values):
+        host_id = "collectd:" + host.replace("/", "_")
+        measures = {host_id: collections.defaultdict(list)}
+        for v in values:
+            ident, suffixes = self._serialize_identifier(v)
+            for i, value in enumerate(v.values):
+                measures[host_id][ident + suffixes[i]].append({
+                    "timestamp": v.time,
+                    "value": value,
+                })
+        try:
+            self.g.metric.batch_resources_metrics_measures(
+                measures, create_metrics=True)
+        except exceptions.BadRequest:
+            # Create the resource and try again
+            self._ensure_resource_exists(host_id, host)
+            self.g.metric.batch_resources_metrics_measures(
+                measures, create_metrics=True)
 
 
 g = Gnocchi()
