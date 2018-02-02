@@ -13,9 +13,16 @@ trap cleanup EXIT
 
 eval `pifpaf run gnocchi`
 cd $PIFPAF_DATA
-cat >> collectd.conf <<EOF
+cat > collectd.conf <<EOF
 Hostname "host-test"
 Interval     1
+
+LoadPlugin logfile
+<Plugin logfile>
+  File "stdout"
+  PrintSeverity true
+</Plugin>
+
 LoadPlugin cpu
 LoadPlugin interface
 LoadPlugin load
