@@ -54,10 +54,11 @@ gnocchi resource list
 gnocchi resource list -f value | grep collectd:
 
 gnocchi resource show collectd:host-test
-gnocchi resource show collectd:host-test -f value | grep load@load-1min
-
-gnocchi measures show load@load-1min -r collectd:host-test
-MEASURES_NB=$(gnocchi measures show load@load-1min -r collectd:host-test | wc -l)
-test $MEASURES_NB -ge 1
+for metric in memory@memory-used load@load-1min; do
+    gnocchi resource show collectd:host-test -f value | grep "$metric"
+    gnocchi measures show $metric -r collectd:host-test
+    MEASURES_NB=$(gnocchi measures show $metric -r collectd:host-test -f value| wc -l)
+    test $MEASURES_NB -ge 1
+done
 
 echo I: Tests passed

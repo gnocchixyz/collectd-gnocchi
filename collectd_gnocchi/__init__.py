@@ -34,41 +34,41 @@ from keystoneauth1 import session
 TYPE_VALUES_NAMES_MAPPING = {
     # https://github.com/collectd/collectd/blob/master/src/load.c#L91
     # https://github.com/collectd/collectd/blob/master/src/load.c#L113
-    "load": ["1min", "5min", "15min"],
+    "load": ["-1min", "-5min", "-15min"],
 
     # https://github.com/collectd/collectd/blob/master/src/disk.c#L275
     # https://github.com/collectd/collectd/blob/master/src/disk.c#L524
     # https://github.com/collectd/collectd/blob/master/src/virt.c#L758
     # https://github.com/collectd/collectd/blob/master/src/processes.c#L871
-    "disk_octets": ["read", "write"],
-    "disk_ops": ["read", "write"],
-    "disk_time": ["read", "write"],
-    "disk_merged": ["read", "write"],
+    "disk_octets": ["-read", "-write"],
+    "disk_ops": ["-read", "-write"],
+    "disk_time": ["-read", "-write"],
+    "disk_merged": ["-read", "-write"],
     # https://github.com/collectd/collectd/blob/master/src/disk.c#L292
-    "disk_io_time": ["io_time", "weighted_time"],
+    "disk_io_time": ["-io_time", "-weighted_time"],
 
     # https://github.com/collectd/collectd/blob/master/src/interface.c#L216
     # https://github.com/collectd/collectd/blob/master/src/interface.c#L266
     # https://github.com/collectd/collectd/blob/master/src/netlink.c#L244
     # https://github.com/collectd/collectd/blob/master/src/virt.c#L1563
     # https://github.com/collectd/collectd/blob/master/src/network.c#L3053
-    "if_packets": ["rx", "tx"],
-    "if_octets": ["rx", "tx"],
-    "if_errors": ["rx", "tx"],
-    "if_dropped": ["rx", "tx"],
+    "if_packets": ["-rx", "-tx"],
+    "if_octets": ["-rx", "-tx"],
+    "if_errors": ["-rx", "-tx"],
+    "if_dropped": ["-rx", "-tx"],
 
     # https://github.com/collectd/collectd/blob/master/src/smart.c#L97
-    "smart_attribute": ["current", "worst", "threshold", "pretty"],
+    "smart_attribute": ["-current", "-worst", "-threshold", "-pretty"],
 
     # https://github.com/collectd/collectd/blob/master/src/virt.c#L682
     # https://github.com/collectd/collectd/blob/master/src/processes.c#L836
-    "ps_cputime": ["user", "system"],
+    "ps_cputime": ["-user", "-system"],
 
     # https://github.com/collectd/collectd/blob/master/src/processes.c#L836
-    "ps_count": ["proc", "lwp"],
-    "ps_pagefaults": ["min", "max"],
-    "io_octets": ["read", "write"],
-    "io_ops": ["read", "write"],
+    "ps_count": ["-proc", "-lwp"],
+    "ps_pagefaults": ["-min", "-max"],
+    "io_octets": ["-read", "-write"],
+    "io_ops": ["-read", "-write"],
 }
 
 
@@ -175,42 +175,39 @@ class Gnocchi(object):
             self.flush(0, None)
 
     @staticmethod
-    def _serialize_identifier(index, v):
+    def _serialize_identifier(v):
         """Based of FORMAT_VL from collectd/src/daemon/common.h.
 
         The biggest difference is that we don't prepend the host and append the
         index of the value, and don't use slash.
 
         """
-
         # NOTE(sileht): the len of v.values is static in Collectd, so for
         # a particular type, this will always have the same len.
         n_values = len(v.values)
         if n_values <= 1:
-            suffix = None
+            suffixes = [""]
         else:
-            mapping = TYPE_VALUES_NAMES_MAPPING.get(v.type)
-            if mapping is None:
+            suffixes = TYPE_VALUES_NAMES_MAPPING.get(v.type)
+            if suffixes is None:
                 collectd.error("TYPE_VALUES_NAMES_MAPPING for (%s, %s) "
                                "does not have names, fallback to indexes. "
                                "Please report a bug to collectd-gnocchi" %
                                (v.plugin, v.type))
-                suffix = str(index)
-            elif len(mapping) != n_values:
+                suffixes = ["-%d" % i for i in range(n_values)]
+            elif len(suffixes) != n_values:
                 collectd.error("Expecting %d values instead of %s for %s in "
                                "TYPE_VALUES_NAMES_MAPPING, "
                                "fallback to indexes." %
-                               (len(mapping), n_values, v.type))
-                suffix = str(index)
-            else:
-                suffix = mapping[index]
+                               (len(suffixes), n_values, v.type))
+                suffixes = ["-%d" % i for i in range(n_values)]
 
         return (v.plugin + ("-" + v.plugin_instance
                             if v.plugin_instance else "")
                 + "@"
                 + v.type + ("-" + v.type_instance
-                            if v.type_instance else "")
-                + ("-" + suffix if suffix else ""))
+                            if v.type_instance else ""),
+                suffixes)
 
     @log_full_exception
     def flush(self, timeout, identifier):
@@ -229,12 +226,12 @@ class Gnocchi(object):
             host_id = "collectd:" + host.replace("/", "_")
             measures = {host_id: collections.defaultdict(list)}
             for value_obj in values:
+                ident, suffixes = self._serialize_identifier(value_obj)
                 for i, value in enumerate(value_obj.values):
-                    measures[host_id][
-                        self._serialize_identifier(i, value_obj)].append({
-                            "timestamp": v.time,
-                            "value": value,
-                        })
+                    measures[host_id][ident + suffixes[i]].append({
+                        "timestamp": v.time,
+                        "value": value,
+                    })
             try:
                 self.g.metric.batch_resources_metrics_measures(
                     measures, create_metrics=True)
