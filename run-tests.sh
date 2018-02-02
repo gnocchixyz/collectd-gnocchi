@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 set -x
-trap cleanup EXIT
+
+PATH=/opt/collectd/sbin:/opt/collectd/bin:/usr/local/sbin:/usr/sbin:$PATH
 
 cleanup () {
     test -n "$COLLECTD_PID" && kill $COLLECTD_PID || true
     type -t pifpaf_stop >/dev/null && pifpaf_stop || true
 }
-
-PATH=/opt/collectd/sbin:/opt/collectd/bin:/usr/local/sbin:/usr/sbin:$PATH
+trap cleanup EXIT
 
 eval `pifpaf --debug run gnocchi`
 cd $PIFPAF_DATA
