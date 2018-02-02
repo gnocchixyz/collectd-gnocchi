@@ -5,12 +5,13 @@ set -x
 PATH=/opt/collectd/sbin:/opt/collectd/bin:/usr/local/sbin:/usr/sbin:$PATH
 
 cleanup () {
+    set +x
     test -n "$COLLECTD_PID" && kill $COLLECTD_PID || true
     type -t pifpaf_stop >/dev/null && pifpaf_stop || true
 }
 trap cleanup EXIT
 
-eval `pifpaf --debug run gnocchi`
+eval `pifpaf run gnocchi`
 cd $PIFPAF_DATA
 cat >> collectd.conf <<EOF
 Hostname "host-test"
