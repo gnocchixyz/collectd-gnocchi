@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016 Red Hat, Inc
+# Copyright © 2016-2018 Red Hat, Inc
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,6 +15,7 @@
 # under the License.
 import collections
 import itertools
+import math
 import operator
 import sys
 import time
@@ -233,10 +234,11 @@ class Gnocchi(object):
         for v in values:
             ident, suffixes = self._serialize_identifier(v)
             for i, value in enumerate(v.values):
-                measures[host_id][ident + suffixes[i]].append({
-                    "timestamp": v.time,
-                    "value": value,
-                })
+                if not math.isnan(value):
+                    measures[host_id][ident + suffixes[i]].append({
+                        "timestamp": v.time,
+                        "value": value,
+                    })
         try:
             self.g.metric.batch_resources_metrics_measures(
                 measures, create_metrics=True)
