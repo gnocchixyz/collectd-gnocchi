@@ -70,6 +70,10 @@ TYPE_VALUES_NAMES_MAPPING = {
     "ps_pagefaults": ["-min", "-max"],
     "io_octets": ["-read", "-write"],
     "io_ops": ["-read", "-write"],
+
+    # https://github.com/collectd/collectd/blob/master/src/memcached.c#L599
+    "memcached_octets": ["-read", "-write"],
+    "df": ["-used", "-free"],
 }
 
 
